@@ -6,6 +6,9 @@ namespace DatabaseObject;
 
 class DatabaseObjectDefinition implements \IteratorAggregate {
 
+    /**
+     * @var \DatabaseObject\DatabaseObjectColumn[]
+     */
     protected $_definition = [];
 
     protected $_idColumn = NULL;

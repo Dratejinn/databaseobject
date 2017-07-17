@@ -10,25 +10,65 @@ abstract class ADatabaseObject {
     const RETRIEVAL_STATEMENT   = 0x03;
     const RETRIEVAL_COUNT       = 0x05;
 
+    /**
+     * @var \DatabaseObject\Abstracts\ADatabase[]
+     */
     private static $_Database   = [];
 
+    /**
+     * @var \DatabaseObject\DatabaseObjectDefinition|null
+     */
     private $_definition        = NULL;
+
+    /**
+     * @var null|string
+     */
     private $_database          = NULL;
+
+    /**
+     * @var array
+     */
     private $_values            = [];
+
+    /**
+     * @var array
+     */
     private $_updates           = [];
+
+    /**
+     * @var bool
+     */
     private $_exists            = FALSE;
 
+    /**
+     * ADatabaseObject constructor.
+     * @param null $id
+     * @param null $index
+     */
     public function __construct($id = NULL, $index = NULL) {
         $this->_definition = $this->createObjectDefinition();
         $this->retrieve($id, $index);
     }
 
+    /**
+     * To be implemented by the extender. Returns the database object definition
+     * @return \DatabaseObject\DatabaseObjectDefinition
+     */
     abstract public static function CreateObjectDefinition() : DatabaseObjectDefinition;
 
+    /**
+     * Used to get the objects database object definition
+     * @return \DatabaseObject\DatabaseObjectDefinition
+     */
     public function getObjectDefinition() : DatabaseObjectDefinition {
         return $this->_definition;
     }
 
+    /**
+     * Get the database values
+     * @param string $name
+     * @return mixed|null
+     */
     public function __get(string $name) {
         if (isset($this->_values[$name])) {
             return $this->_values[$name];
@@ -36,6 +76,12 @@ abstract class ADatabaseObject {
         return NULL;
     }
 
+    /**
+     * Set a database value
+     * @param string $name
+     * @param $value
+     * @throws \Exception
+     */
     public function __set(string $name, $value) {
         if ($this->_definition->hasColumn($name)) {
             $columnDefinition = $this->_definition->getColumn($name);
@@ -49,10 +95,18 @@ abstract class ADatabaseObject {
         }
     }
 
+    /**
+     * Returns just the values for the database object
+     * @return array
+     */
     public function __debugInfo() : array {
         return ['values' => $this->_values];
     }
 
+    /**
+     * Store the databaseobject returns true on success
+     * @return bool
+     */
     public function store() : bool {
         if ($this->_exists) {
             echo 'Doing Existing' . PHP_EOL;
@@ -66,7 +120,16 @@ abstract class ADatabaseObject {
         return $success;
     }
 
+    /**
+     * Retrieve this database object
+     * @param null $id
+     * @param null $index
+     * @return bool
+     */
     public function retrieve($id = NULL, $index = NULL) : bool {
+        /**
+         * @var \DatabaseObject\DatabaseObjectColumn $column
+         */
         foreach ($this->_definition as $column) {
             $this->_values[$column->getName()] = $column->getDefaultValue();
         }
@@ -76,17 +139,17 @@ abstract class ADatabaseObject {
         }
 
         if ($index === NULL) {
-            $index = $this->_definition->getIdColumn()->getInternalName();
+            $index = $this->_definition->getIdColumn()->getDatabaseName();
         }
         $db = $this->getDatabase();
         $pdo = $db->connect();
-        $columns = $this->_definition->getInternalColumnNames();
+        $columns = $this->_definition->getDatabaseColumnNames();
         $columns = implode(',', $columns);
         $table = $this->_definition->getTable();
 
         $statement = $pdo->prepare("SELECT $columns FROM $table WHERE `$index` = :id");
         foreach ($this->_definition as $column) {
-            $statement->bindColumn($column->getInternalName(), $this->_values[$column->getName()], \PDO::PARAM_STR);
+            $statement->bindColumn($column->getDatabaseName(), $this->_values[$column->getName()], \PDO::PARAM_STR);
         }
         $success = $statement->execute([':id' => $id]);
         if ($success) {
@@ -102,6 +165,10 @@ abstract class ADatabaseObject {
         return $success;
     }
 
+    /**
+     * Delete the database object from the database. Returns TRUE on success FALSE on failure
+     * @return bool
+     */
     public function delete() : bool {
         $db = $this->getDatabase();
         $pdo = $db->connect();
@@ -109,7 +176,7 @@ abstract class ADatabaseObject {
         $idCol = $this->_definition->getIdColumn();
         $table = $this->_definition->getTable();
 
-        $id = $idCol->getInternalName();
+        $id = $idCol->getDatabaseName();
         $idValue = $this->{$idCol->getName()};
         $values = [':id' => $idValue];
 
@@ -122,6 +189,10 @@ abstract class ADatabaseObject {
         return $success;
     }
 
+    /**
+     * Used for insertion store for non existing database objects
+     * @return bool TRUE on success FALSE on failure
+     */
     private function _insertStore() : bool {
         $db = $this->getDatabase();
         $pdo = $db->connect();
@@ -129,7 +200,7 @@ abstract class ADatabaseObject {
         $columns = [];
         foreach ($this->_updates as $colName => $value) {
             $columnObj = $this->_definition->getColumn($colName);
-            $columns[':' . $colName] = '`' . $columnObj->getInternalName() . '`';
+            $columns[':' . $colName] = '`' . $columnObj->getDatabaseName() . '`';
             $values[':' . $colName] = $value;
         }
         $this->_updates = [];
@@ -145,18 +216,22 @@ abstract class ADatabaseObject {
         return $success;
     }
 
+    /**
+     * Used for update storing existing database objects
+     * @return bool TRUE on success FALSE on failure
+     */
     private function _updateStore() : bool {
         $db = $this->getDatabase();
         $pdo = $db->connect();
         $table = $this->_definition->getTable();
         $updates = [];
         $idCol = $this->_definition->getIdColumn();
-        $id = $idCol->getInternalName();
+        $id = $idCol->getDatabaseName();
         $idValue = $this->{$idCol->getName()};
         $values = [':id' => $idValue];
         foreach ($this->_updates as $colName => $value) {
             $columnObj = $this->_definition->getColumn($colName);
-            $updates[] = '`' . $columnObj->getInternalName() . '`= :' . $colName;
+            $updates[] = '`' . $columnObj->getDatabaseName() . '`= :' . $colName;
             $values[':' . $colName] = $value;
         }
         $queryPart = implode(', ', $updates);
@@ -171,22 +246,37 @@ abstract class ADatabaseObject {
         return $success;
     }
 
+    /**
+     * Used to update the id field after a store action
+     * @param \PDO $pdo
+     */
     private function _updateIdField(\PDO $pdo) {
         if (!$this->exists()) {
             $idName = $this->_definition->getIdColumn()->getName();
             $this->_values[$idName] = $pdo->lastInsertId();
-
         }
     }
 
+    /**
+     * Used to check whether the dbo exists
+     * @return bool
+     */
     public function exists() : bool {
         return $this->_exists;
     }
 
+    /**
+     * Set the database for this object
+     * @param \DatabaseObject\Abstracts\ADatabase $database
+     */
     public function setDatabase(ADatabase $database) {
         $this->_database = $database;
     }
 
+    /**
+     * Get the current database. If the current database is not set, it will set the database to the default database and return the default database
+     * @return \DatabaseObject\Abstracts\ADatabase
+     */
     public function getDatabase() : ADatabase {
         if ($this->_database === NULL) {
             $this->_database = static::GetDefaultDatabase();
@@ -194,10 +284,19 @@ abstract class ADatabaseObject {
         return $this->_database;
     }
 
+    /**
+     * Set the default database for this object
+     * @param \DatabaseObject\Abstracts\ADatabase $database
+     */
     public static function SetDefaultDatabase(ADatabase $database) {
         self::$_Database[static::class] = $database;
     }
 
+    /**
+     * Returns the default database for the dbo
+     * @return \DatabaseObject\Abstracts\ADatabase
+     * @throws \Exception
+     */
     public static function GetDefaultDatabase() : ADatabase {
         if (!isset(self::$_Database[static::class])) {
             throw new \Exception('Default database is not set!');
@@ -205,6 +304,13 @@ abstract class ADatabaseObject {
         return self::$_Database[static::class];
     }
 
+    /**
+     * @param int $retrievalMode
+     * @param array $whereClauses
+     * @param int|NULL $limit
+     * @param \DatabaseObject\Abstracts\ADatabase|NULL $database
+     * @return array
+     */
     public static function Find(int $retrievalMode = self::RETRIEVAL_OBJECT, array $whereClauses = [], int $limit = NULL, ADatabase $database = NULL) {
         if ($database === NULL) {
             $database = static::GetDefaultDatabase();
@@ -221,7 +327,7 @@ abstract class ADatabaseObject {
             if (is_array($value)) {
                 list($column, $operator, $colVal) = $value;
                 $queryParts[] = "`$column` $operator :$column";
-                $values[':' . $column] = $value;
+                $values[':' . $column] = $colVal;
             } else {
                 $queryParts[] = "`$key` = :$key";
                 $values[':' . $key] = $value;
@@ -234,10 +340,11 @@ abstract class ADatabaseObject {
         switch ($retrievalMode) {
             case self::RETRIEVAL_STATEMENT:
             case self::RETRIEVAL_OBJECT:
-                $query = 'SELECT * FROM $table WHERE $queryString';
+            default:
+                $query = "SELECT * FROM $table WHERE $queryString";
                 break;
             case self::RETRIEVAL_COUNT:
-                $query = 'SELECT COUNT(*) FROM $table WHERE $queryString';
+                $query = "SELECT COUNT(*) FROM $table WHERE $queryString";
                 break;
         }
         $pdo = $database->connect();
@@ -255,13 +362,17 @@ abstract class ADatabaseObject {
             case self::RETRIEVAL_COUNT:
                 list($count) = $statement->fetch(\PDO::FETCH_NUM);
                 return $count;
+            default:
             case self::RETRIEVAL_OBJECT:
                 $res = [];
                 $res = $statement->fetchAll(\PDO::FETCH_ASSOC);
                 foreach ($res as $resAssoc) {
                     $obj = new static;
+                    /**
+                     * @var \DatabaseObject\DatabaseObjectColumn $column
+                     */
                     foreach ($objectDefinition as $column) {
-                        $internalField = $column->getInternalName();
+                        $internalField = $column->getDatabaseName();
                         if (isset($resAssoc[$internalField])) {
                             $obj->{$column->getName()} = $resAssoc[$internalField];
                         }

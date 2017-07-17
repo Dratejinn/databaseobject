@@ -8,6 +8,10 @@ trait TConnectionDetails {
 
     protected $_options = [];
 
+    /**
+     * Returns the connection details as a dsn part for \PDO
+     * @return string
+     */
     public function getConnectionDetailsAsDsnPart() : string {
 
         $connectionDetails = '';

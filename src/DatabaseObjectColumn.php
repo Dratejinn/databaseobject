@@ -12,33 +12,61 @@ class DatabaseObjectColumn {
     const TYPE_INT      = 'int';
 
     private $_name          = NULL;
-    private $_interalName   = NULL;
+    private $_databaseName  = NULL;
     private $_type          = NULL;
     private $_defaultValue  = NULL;
 
-    public function __construct(string $name, string $type, $defaultValue = NULL, string $internalName = NULL) {
+    /**
+     * DatabaseObjectColumn constructor.
+     * @param string $name
+     * @param string $type
+     * @param null $defaultValue
+     * @param string|NULL $databaseName
+     */
+    public function __construct(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL) {
         $this->_name = $name;
-        $this->_interalName = $internalName ?: $name;
+        $this->_databaseName = $databaseName ?: $name;
         $this->_type = $type;
         $this->_defaultValue = $this->castValue($defaultValue);
     }
 
+    /**
+     * Get the PHP name for the column
+     * @return string
+     */
     public function getName() : string {
         return $this->_name;
     }
 
-    public function getInternalName() : string {
-        return $this->_interalName;
+    /**
+     * Get the database name for the column
+     * @return string
+     */
+    public function getDatabaseName() : string {
+        return $this->_databaseName;
     }
 
+    /**
+     * Get the column type
+     * @return string
+     */
     public function getType() : string {
         return $this->_type;
     }
 
+    /**
+     * Get the optional default value for the column
+     * @return bool|float|int|null
+     */
     public function getDefaultValue() {
         return $this->_defaultValue;
     }
 
+    /**
+     * Cast a value to its correct type
+     * @param $value
+     * @return bool|float|int|null|string
+     */
     public function castValue($value) {
         switch ($this->_type) {
             case self::TYPE_STRING:
@@ -54,6 +82,10 @@ class DatabaseObjectColumn {
         }
     }
 
+    /**
+     * Get the Database type
+     * @return int
+     */
     public function getPDOType() : int {
         switch ($this->_type) {
             case self::TYPE_BOOL:
@@ -67,19 +99,15 @@ class DatabaseObjectColumn {
         }
     }
 
-    private function _validateType(string $type) : bool {
-        switch ($type) {
-            case self::TYPE_STRING:
-            case self::TYPE_FLOAT:
-            case self::TYPE_BOOL:
-            case self::TYPE_INT:
-                return TRUE;
-            default:
-                return FALSE;
-        }
-    }
-
-    public static function Create(string $name, string $type, $defaultValue = NULL, string $internalName = NULL) : DatabaseObjectColumn {
-        return new static($name, $type, $defaultValue, $internalName);
+    /**
+     * Creates a new column with provided arguments
+     * @param string $name
+     * @param string $type
+     * @param null $defaultValue
+     * @param string|NULL $databaseName
+     * @return \DatabaseObject\DatabaseObjectColumn
+     */
+    public static function Create(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL) : DatabaseObjectColumn {
+        return new static($name, $type, $defaultValue, $databaseName);
     }
 }

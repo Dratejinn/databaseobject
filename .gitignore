@@ -1,5 +1,7 @@
 /tests/credentials.php
 /vendor/
+.DS_Store
+._*
 
 # User-specific stuff:
 .idea/workspace.xml

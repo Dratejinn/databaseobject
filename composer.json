@@ -1,6 +1,7 @@
 {
-    "name": "freek/databaseobject",
+    "name": "dratejinn/databaseobject",
     "type": "library",
+    "license": "MIT",
     "authors": [
         {
             "name": "Freek van der Veer",

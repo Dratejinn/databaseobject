@@ -298,10 +298,13 @@ abstract class ADatabaseObject {
      * @throws \Exception
      */
     public static function GetDefaultDatabase() : ADatabase {
-        if (!isset(self::$_Database[static::class])) {
-            throw new \Exception('Default database is not set!');
+        if (isset(self::$_Database[static::class])) {
+            return self::$_Database[static::class];
         }
-        return self::$_Database[static::class];
+        if (isset(self::$_Database[self::class])) {
+            return self::$_Database[self::class];
+        }
+        throw new \Exception('Default database is not set!');
     }
 
     /**
@@ -311,7 +314,7 @@ abstract class ADatabaseObject {
      * @param \DatabaseObject\Abstracts\ADatabase|NULL $database
      * @return array
      */
-    public static function Find(int $retrievalMode = self::RETRIEVAL_OBJECT, array $whereClauses = [], int $limit = NULL, ADatabase $database = NULL) {
+    public static function Find(array $whereClauses = [], int $limit = NULL, int $retrievalMode = self::RETRIEVAL_OBJECT, ADatabase $database = NULL) {
         if ($database === NULL) {
             $database = static::GetDefaultDatabase();
         }

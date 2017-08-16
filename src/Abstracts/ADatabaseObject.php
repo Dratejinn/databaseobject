@@ -367,7 +367,7 @@ abstract class ADatabaseObject {
                 return $count;
             default:
             case self::RETRIEVAL_OBJECT:
-                $res = [];
+                $ret = [];
                 $res = $statement->fetchAll(\PDO::FETCH_ASSOC);
                 foreach ($res as $resAssoc) {
                     $obj = new static;
@@ -381,9 +381,9 @@ abstract class ADatabaseObject {
                         }
                     }
                     $obj->_exists = TRUE;
-                    $res[] = $obj;
+                    $ret[] = $obj;
                 }
-                return $res;
+                return $ret;
         }
     }
 

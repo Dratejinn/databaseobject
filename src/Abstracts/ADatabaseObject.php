@@ -116,7 +116,6 @@ abstract class ADatabaseObject {
             $success = $this->_insertStore();
         }
         $this->_exists = $success;
-        var_dump($success);
         return $success;
     }
 
@@ -198,11 +197,16 @@ abstract class ADatabaseObject {
         $pdo = $db->connect();
         $table = $this->_definition->getTable();
         $columns = [];
-        foreach ($this->_updates as $colName => $value) {
+        foreach ($this->_values as $colName => $value) {
             $columnObj = $this->_definition->getColumn($colName);
             $columns[':' . $colName] = '`' . $columnObj->getDatabaseName() . '`';
+            if (is_bool($value)) { //ensure that boolean values are correctly stored by casting them to an integer value
+                $value = (int) $value;
+            }
             $values[':' . $colName] = $value;
         }
+        var_dump($columns);
+        var_dump($values);
         $this->_updates = [];
         $columnStr = implode(', ', $columns);
         $valueStr = implode(', ', array_keys($columns));
@@ -211,6 +215,8 @@ abstract class ADatabaseObject {
         $success = $statement->execute($values);
         if ($success) {
             $this->_updateIdField($pdo);
+        } else {
+            var_dump($statement->errorInfo());
         }
         $db->disconnect();
         return $success;

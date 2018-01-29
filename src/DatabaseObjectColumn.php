@@ -15,6 +15,7 @@ class DatabaseObjectColumn {
     private $_databaseName  = NULL;
     private $_type          = NULL;
     private $_defaultValue  = NULL;
+    private $_nullable      = NULL;
 
     /**
      * DatabaseObjectColumn constructor.
@@ -22,12 +23,14 @@ class DatabaseObjectColumn {
      * @param string $type
      * @param null $defaultValue
      * @param string|NULL $databaseName
+     * @param bool $nullable
      */
-    public function __construct(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL) {
+    public function __construct(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL, bool $nullable = FALSE) {
         $this->_name = $name;
         $this->_databaseName = $databaseName ?: $name;
         $this->_type = $type;
-        $this->_defaultValue = $this->castValue($defaultValue);
+        $this->_defaultValue = $nullable ? NULL : $this->castValue($defaultValue);
+        $this->_nullable = $nullable;
     }
 
     /**
@@ -68,6 +71,9 @@ class DatabaseObjectColumn {
      * @return bool|float|int|null|string
      */
     public function castValue($value) {
+        if ($this->_nullable && $value === NULL) {
+            return NULL;
+        }
         switch ($this->_type) {
             case self::TYPE_STRING:
                 return (string) $value;
@@ -107,7 +113,7 @@ class DatabaseObjectColumn {
      * @param string|NULL $databaseName
      * @return \DatabaseObject\DatabaseObjectColumn
      */
-    public static function Create(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL) : DatabaseObjectColumn {
-        return new static($name, $type, $defaultValue, $databaseName);
+    public static function Create(string $name, string $type, $defaultValue = NULL, string $databaseName = NULL, bool $nullable = FALSE) : DatabaseObjectColumn {
+        return new static($name, $type, $defaultValue, $databaseName, $nullable);
     }
 }

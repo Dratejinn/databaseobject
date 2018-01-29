@@ -96,6 +96,16 @@ abstract class ADatabaseObject {
     }
 
     /**
+     * Check whether a column has been set
+     *
+     * @param string $name
+     * @return bool
+     */
+    public function __isset(string $name) {
+        return isset($this->_values[$name]);
+    }
+
+    /**
      * Returns just the values for the database object
      * @return array
      */
@@ -318,7 +328,7 @@ abstract class ADatabaseObject {
      * @param array $whereClauses
      * @param int|NULL $limit
      * @param \DatabaseObject\Abstracts\ADatabase|NULL $database
-     * @return array
+     * @return static[]
      */
     public static function Find(array $whereClauses = [], int $limit = NULL, int $retrievalMode = self::RETRIEVAL_OBJECT, ADatabase $database = NULL) {
         if ($database === NULL) {
@@ -343,17 +353,21 @@ abstract class ADatabaseObject {
             }
         }
         $queryString = implode(' AND ', $queryParts);
+        $limitString = '';
         if ($limit !== NULL && $limit > 0) {
-            $queryString .= ' LIMIT ' . $limit;
+            $limitString .= ' LIMIT ' . $limit;
+        }
+        if (!empty($queryString)) {
+            $queryString = 'WHERE ' . $queryString;
         }
         switch ($retrievalMode) {
             case self::RETRIEVAL_STATEMENT:
             case self::RETRIEVAL_OBJECT:
             default:
-                $query = "SELECT * FROM $table WHERE $queryString";
+                $query = "SELECT * FROM $table $queryString $limitString";
                 break;
             case self::RETRIEVAL_COUNT:
-                $query = "SELECT COUNT(*) FROM $table WHERE $queryString";
+                $query = "SELECT COUNT(*) FROM $table $queryString $limitString";
                 break;
         }
         $pdo = $database->connect();
@@ -383,7 +397,7 @@ abstract class ADatabaseObject {
                     foreach ($objectDefinition as $column) {
                         $internalField = $column->getDatabaseName();
                         if (isset($resAssoc[$internalField])) {
-                            $obj->{$column->getName()} = $resAssoc[$internalField];
+                            $obj->{$column->getName()} = $column->castValue($resAssoc[$internalField]);
                         }
                     }
                     $obj->_exists = TRUE;
